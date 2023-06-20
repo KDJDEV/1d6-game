@@ -1,12 +1,7 @@
-# 1d6 game
-Code that finds the solution to this stats problem:
-You and your opponent play a game where you each take turns rolling 1d6 (a six sided die) and add the number rolled to your own running total. The first to reach 11 wins. You (but not your opponent) get to add +1 to each of your rolls. What is the probability that you will win if you go first? Second? What is the probability you will win if you have a 30% chance of going first?
+# 1d6 game using convolutions
+The logic is the same as the main branch version. This code is just implemented using convolutions instead of polynomial multiplications. The output is therefore also the same as the code in the main branch, except this version doesn't show exact probability fractions.
 
-This is the final output of running the script:
-```
-P1(W) = Final probability of winning for P1 = 1093853/1259712 ≈ 0.8683357783366357
-P2(W) = probability of winning for P2 = 165859/1259712 ≈ 0.1316642216633643
+I didn't know about convolutions when I first wrote this, but was inspired to create a version of this code using them after watching this video:
+https://www.youtube.com/watch?v=KuXjwB4LzSA&t=485s&ab_channel=3Blue1Brown
 
-By simply weighting these probabilities, you can find that if you have a 30% chance of going first:
-P(W) = 394123169/604661760 ≈ 0.6518076635109189
-```
+This code will switch to using fftconvolve rather than the direct method if it thinks it will be more efficient (this is due to the scipy convolve function).

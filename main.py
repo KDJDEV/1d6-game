@@ -1,65 +1,63 @@
-from sympy import symbols, expand
 
-x = symbols('x')
+from scipy.signal import convolve
+import numpy as np
 
-"""
-Notice that the P1 and P2 RollPolynomials have different terms.
-This code currently calculates for if you go first, which is why I'm letting the P1 polynomial have the larger terms(for the +1).
-If you want to calculate for if you go second, switch the roll polynomials.
-"""
-P1RollPolynomial = x**2 + x**3 + x**4 + x**5 + x**6 + x**7 #The polynomial we multiply P1Polynomial by to get all possible sums
-P2RollPolynomial = x + x**2 + x**3 + x**4 + x**5 + x**6 #The polynomial we multiply P2Polynomial by to get all possible sums
-P1Polynomial = 1
-P2Polynomial = 1
+P1RollList = [0,0,1,1,1,1,1,1] #The list we convolve P1List with get all possible sums (in this case, numbers 2-7, because of the positions in the list that are 1s)
+P2RollList = [0,1,1,1,1,1,1] #The list we convolve P2List with get all possible sums (in this case, numbers 1-6, because of the positions in the list that are 1s)
+P1List = [1]
+P2List = [1]
 P1WinProb = 0
 P2WinProb = 0
 probToGetToThisPoint = 1
 
-def getPossibleSumsPolynomial(currentPolynomial, rollPolynomial):
-    expanded = expand(currentPolynomial * rollPolynomial)
-    return expanded
+def makeListsEqualLength(list1, list2):
+    lenDiff = len(list1) - len(list2)
+    if lenDiff > 0:
+        list2.extend([0] * lenDiff)
+    elif lenDiff < 0:
+        list1.extend([0] * abs(lenDiff))
 
-def getLosePolynomial(possibleSumsPolynomial): #gets the new possible sums polynomial
-    terms = possibleSumsPolynomial.as_ordered_terms()
-    filteredTerms = [term for term in terms if term.as_poly(x).degree() < 11]
-    filteredPolynomial = sum(filteredTerms)
-    return filteredPolynomial #returns 0 if there are no remaining terms
+    return list1, list2
 
-def getProbWin(possibleSumsPolynomial): #assumes we made it to this point
+def getPossibleSumsList(currentList, rollList):
+    currentList, rollList = makeListsEqualLength(currentList, rollList)
+    convolution = np.round(convolve(currentList, rollList)) #I round because all numbers in list should be ints, but fftconvolve approximates
+    return convolution
+
+def getLoseList(possibleSumsList):
+    filteredList = possibleSumsList[:11]
+    return filteredList
+
+def getProbWin(possibleSumsList):
     numWinningRolls = 0
-    totalRolls = 0
-
-    for term in possibleSumsPolynomial.as_ordered_terms():
-        exponent = term.as_expr().as_poly().degree()
-        coefficient = term.coeff(x**exponent)
-        if (exponent >= 11):
-            numWinningRolls += coefficient
-        totalRolls += coefficient
+    totalRolls = sum(possibleSumsList)
+    for num in possibleSumsList[11:]:
+            numWinningRolls += num
     return numWinningRolls / totalRolls
 
 turn = 1
 
 while True:
-    possibleSumsPolynomial = getPossibleSumsPolynomial(P1Polynomial, P1RollPolynomial)
-    turnWinProb = getProbWin(possibleSumsPolynomial)
+    possibleSumsList = getPossibleSumsList(P1List, P1RollList)
+    turnWinProb = getProbWin(possibleSumsList)
     P1WinProb += probToGetToThisPoint * turnWinProb
-    P1Polynomial = getLosePolynomial(possibleSumsPolynomial)
+    P1List = getLoseList(possibleSumsList)
     probToGetToThisPoint = probToGetToThisPoint * (1 - turnWinProb)
     print(f"After player 1's turn #{turn}:")
     print(f"Probability that they won this turn: {turnWinProb}")
     print(f"Probability that they have actually gotten to this point: {probToGetToThisPoint}\n")
 
-    possibleSumsPolynomial = getPossibleSumsPolynomial(P2Polynomial, P2RollPolynomial)
-    turnWinProb = getProbWin(possibleSumsPolynomial)
+    possibleSumsList = getPossibleSumsList(P2List, P2RollList)
+    turnWinProb = getProbWin(possibleSumsList)
     P2WinProb += probToGetToThisPoint * turnWinProb
-    P2Polynomial = getLosePolynomial(possibleSumsPolynomial)
+    P2List = getLoseList(possibleSumsList)
     probToGetToThisPoint = probToGetToThisPoint * (1 - turnWinProb)
     print(f"After player 2's turn #{turn}:")
     print(f"Probability that they won this turn: {turnWinProb}")
     print(f"Probability that they have actually gotten to this point: {probToGetToThisPoint}\n")
 
-    if (P1Polynomial == 0 or P2Polynomial == 0):
-        print(f"Final probability of win for P1: {P1WinProb} ≈ {float(P1WinProb)}")
-        print(f"Final probability of win for P2: {P2WinProb} ≈ {float(P2WinProb)} \n")
+    if (turn != 1 and (all(e == 0 for e in P1List) or all(e == 0 for e in P2List))):
+        print(f"Final probability of win for P1 ≈ {P1WinProb}")
+        print(f"Final probability of win for P2 ≈ {P2WinProb} \n")
         break
     turn += 1
